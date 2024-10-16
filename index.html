@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>WebAssembly Silliness</title>
+<link rel="stylesheet" href="style.css">
+<meta content="Wasm sucks" property="og:title" />
+<meta content="Meow:3" property="og:description" />
+<meta content="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/WebAssembly_Logo.svg/600px-WebAssembly_Logo.svg.png" property="og:image" />
+<meta content="#43B581" data-react-helmet="true" name="theme-color" />
+</head>
+
+<body>
+  <h1>WebAssembly Sillines</h1>
+  <h2>Introduction</h2>
+  <p> Boring </p>
+  <h2>The absolute basics</h2>
+  <p>
+    This is a simple function in c. Compiling it to wasm and calling it from javascript is surprisingly easy. No
+    toolchain needed, if you already have clang.
+  <pre>
+    int sum(int a, int b){
+    return a + b;
+    }
+  </pre>
+  I won't bother explaining the linker and compiler flags, they are pretty self explanatory.
+  <pre>
+    clang --target=wasm32 -nostdlib -Wl,--no-entry -Wl,--export-all -o add.wasm add.c
+  </pre>
+  <h4> Sum function in action!! </h4>
+      <form id="add">
+        <label for="a">Enter the first number:</label><br>
+        <input type="text" id="a" name="a"><br>
+        <label for="b">Enter the second number:</label><br>
+        <input type="text" id="b" name="b"><br>
+        <input type="submit" value="add">
+      </form>
+    </br>
+  Actually calling the function is very simple but I ran into some issues initially. The usual way to get started with wasm requires a request to fetch the wasm binary. Cors and other sillines aside this also requires a server and in order to do things the "proper" way the server should also respond with "application/wasm" which simple webservers, like the one you can run with this wont do: <pre> python -m http.server 8000 </pre> This frustrated me so I decided to simply base64 encode the whole binary and embed it as a string. This took a bit of googling to get right but now the encoded wasm is decoded and loaded properly. The javascript is simple enough and it's pretty easy to understand how our c functon might be used just like any other javascript one.
+  <pre>
+
+    // The base64
+    const wasmBase64 =
+    "AGFzbQEAAAABCgJgAABgAn9/AX8DAwIAAQUDAQACBj8KfwFBgIgEC38AQYAIC38AQYAIC38AQYAIC38AQYCIBAt/AEGACAt/AEGAiAQLfwBBgIAIC38AQQALfwBBAQsHpwEMBm1lbW9yeQIAEV9fd2FzbV9jYWxsX2N0b3JzAAADc3VtAAEMX19kc29faGFuZGxlAwEKX19kYXRhX2VuZAMCC19fc3RhY2tfbG93AwMMX19zdGFja19oaWdoAwQNX19nbG9iYWxfYmFzZQMFC19faGVhcF9iYXNlAwYKX19oZWFwX2VuZAMHDV9fbWVtb3J5X2Jhc2UDCAxfX3RhYmxlX2Jhc2UDCQpCAgIACz0BBn8jgICAgAAhAkEQIQMgAiADayEEIAQgADYCDCAEIAE2AgggBCgCDCEFIAQoAgghBiAFIAZqIQcgBw8LAD8EbmFtZQAJCHN1bS53YXNtARkCABFfX3dhc21fY2FsbF9jdG9ycwEDc3VtBxIBAA9fX3N0YWNrX3BvaW50ZXIAJglwcm9kdWNlcnMBDHByb2Nlc3NlZC1ieQEFY2xhbmcGMTguMS44ACwPdGFyZ2V0X2ZlYXR1cmVzAisPbXV0YWJsZS1nbG9iYWxzKwhzaWduLWV4dA==";
+    
+    const decodedWasm = atob(wasmBase64);
+    const wasmBinary = new Uint8Array(decodedWasm.length);
+    
+    for (let i = 0; i < decodedWasm.length; i++) { wasmBinary[i]=decodedWasm.charCodeAt(i); 
+    
+    // Instantiate the WebAssembly module
+    const wasmModule=new WebAssembly.Module(wasmBinary); const wasmInstance=new
+    WebAssembly.Instance(wasmModule); 
+    
+    // Test the sum function, and alert the result
+    alert(wasmInstance.exports.sum(1,2)); 
+  </pre>
+  </p>
+  <script>
+        // The base64 encoded wasm binary 
+        const wasmBase64 =
+          "AGFzbQEAAAABCgJgAABgAn9/AX8DAwIAAQUDAQACBj8KfwFBgIgEC38AQYAIC38AQYAIC38AQYAIC38AQYCIBAt/AEGACAt/AEGAiAQLfwBBgIAIC38AQQALfwBBAQsHpwEMBm1lbW9yeQIAEV9fd2FzbV9jYWxsX2N0b3JzAAADc3VtAAEMX19kc29faGFuZGxlAwEKX19kYXRhX2VuZAMCC19fc3RhY2tfbG93AwMMX19zdGFja19oaWdoAwQNX19nbG9iYWxfYmFzZQMFC19faGVhcF9iYXNlAwYKX19oZWFwX2VuZAMHDV9fbWVtb3J5X2Jhc2UDCAxfX3RhYmxlX2Jhc2UDCQpCAgIACz0BBn8jgICAgAAhAkEQIQMgAiADayEEIAQgADYCDCAEIAE2AgggBCgCDCEFIAQoAgghBiAFIAZqIQcgBw8LAD8EbmFtZQAJCHN1bS53YXNtARkCABFfX3dhc21fY2FsbF9jdG9ycwEDc3VtBxIBAA9fX3N0YWNrX3BvaW50ZXIAJglwcm9kdWNlcnMBDHByb2Nlc3NlZC1ieQEFY2xhbmcGMTguMS44ACwPdGFyZ2V0X2ZlYXR1cmVzAisPbXV0YWJsZS1nbG9iYWxzKwhzaWduLWV4dA==";
+        // the form will call the sum function
+        const decodedWasm = atob(wasmBase64);
+        const wasmBinary = new Uint8Array(decodedWasm.length);
+        for (let i = 0; i < decodedWasm.length; i++) {
+          wasmBinary[i] = decodedWasm.charCodeAt(i);
+        }
+        const wasmModule = new WebAssembly.Module(wasmBinary);
+        const wasmInstance = new WebAssembly.Instance(wasmModule);
+        const form = document.getElementById('add');
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const a = parseInt(document.getElementById('a').value);
+          const b = parseInt(document.getElementById('b').value);
+          alert(wasmInstance.exports.sum(a, b));
+        });
+      </script>
+      <h2>SHA-256</h2>
+
+      <!-- A simple form to get the input from the user. We will then call the function sha256_hex from the wasm binary and alert the output -->
+      <form id="sha256">
+        <label for="text">Enter the text:</label><br>
+        <input type="text" id="text" name="text"><br>
+        <input type="submit" value="Submit">
+      </form>
+
+      <script>
+        // this time we are doing it the "proper" way, by fetching the wasm binary from a server and then instantiating it.
+        (async () => {
+          const response = await fetch('sha256.wasm');
+          const bytes = await response.arrayBuffer();
+          const results = await WebAssembly.instantiate(bytes, {});
+          const {instance: {exports: {memory, sha256_hex}}} = results;
+          const form = document.getElementById('sha256');
+
+          // add an event listener to the form
+          form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const text = document.getElementById('text').value; // get the input from the user
+            const textenc = new TextEncoder().encode(text); // encode the text
+            const textArray = new Uint8Array(memory.buffer, 0, textenc.length); // create a new Uint8Array for the encoded user input within the wasm memory buffer
+            textArray.set(textenc);
+
+            // this is the output array which will store the sha256 hash
+            const array = new Uint8Array(memory.buffer, textenc.length, 65);
+            sha256_hex(textArray.byteOffset, textArray.length, array.byteOffset);
+            alert(new TextDecoder('utf8').decode(array)); // decode the output array and alert the result, if all went correctly, we should have the sha256 hash of the input!
+          });
+        })();
+      </script>
+      <h3> Explanation: </h3>
+      <p> This code is a simple example from a c library I have compiled to wasm. The library in question can be found <a href="https://github.com/983/SHA-256"> here </a> and was chosen because of its lack of dependence on the stdlib. While probably intended for embeded systems, this also makes it convinient to compile to wasm without need for any dependencies or special runtime sillines. I found that:
+      <pre> clang -Wall example.c sha256.c -o example.exe </pre> compiled things just fine on windows and I compiled sha256.c to wasm with:
+      <pre>clang --target=wasm32 -nostdlib -Wl,--no-entry -Wl,--export-all -o sha256.wasm sha256.c </pre>
+      <br>
+      example.c is as follows:
+      <pre style="margin: 30px;">
+#include "sha256.h"
+
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+	/* Input text. */
+	const char *text = "Hello, World!";
+
+	/* Char array to store the hexadecimal SHA-256 string. */
+	/* Must be 65 characters big (or larger). */
+	/* The last character will be the null-character. */
+	char hex[SHA256_HEX_SIZE];
+
+	/* Compute SHA-256 sum. */
+	sha256_hex(text, strlen(text), hex);
+
+	/* Print result. */
+	printf("The SHA-256 sum of \"%s\" is:\n\n", text);
+	printf("%s\n\n", hex);
+
+	return 0;
+}
+      </pre>
+      As you can see, example.c shows how we might call the sha256_hex function by passing in an array of bytes and their length, followed by a buffer which will contain the output.
+      <br>
+      As it turned out, unlike with the simple int add(int a, int b) function, passing and returning arrays from functions is a bit more complicated.
+      <br>
+      The javascript code is as follows, (minus the boilerplate):
+      <pre style="margin: 30px;">
+        const text = document.getElementById('text').value; // get the input from the user
+        const textenc = new TextEncoder().encode(text); // encode the text
+        const textArray = new Uint8Array(memory.buffer, 0, textenc.length); // create a new Uint8Array for the encoded
+        user
+        input within the wasm memory buffer
+        textArray.set(textenc);
+
+        // this is the output array which will store the sha256 hash
+        const array = new Uint8Array(memory.buffer, textenc.length, 65);
+        sha256_hex(textArray.byteOffset, textArray.length, array.byteOffset);
+        alert(new TextDecoder('utf8').decode(array)); // decode the output array and alert the result, if all went
+        correctly, we should have the sha256 hash of the input!
+      </pre>
+      <br>
+      As you can see, we get the input from the user, encode it, and then create a Uint8Array to store the input in the wasm memory buffer. We then create another Uint8Array to store the output of the sha256_hex function. We then call the function and alert the output.This seems to be very hacky and I am sure there is a better way to do this, but I am not sure how to do things properly. Messing arround with memory.buffer seems like it's bound to cause issues, but I can't figure out how to do this any better just yet. I'm not very familiar with web stuff in general, I am mostly just messing around with this stuff for fun.
+
+      </p>
+    <h2> Stupid webserver sillines </h2>
+    <p>
+    Since a simple webserver won't serve wasm files with the correct mime type, and for some stupid reason, it wont work otherwise here's one that will. Just pop the script in the directory containing your wasm/html files are and it should serve them with the correct type, meaning you can access everything on http://127.0.0.1:8000/
+  </p>
+    <pre style="margin: 30px;">
+import http.server
+import socketserver
+
+PORT = 8000
+
+Handler = http.server.SimpleHTTPRequestHandler
+Handler.extensions_map.update({
+    '.wasm': 'application/wasm',
+})
+
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    httpd.allow_reuse_address = True
+    print("serving at port", PORT)
+    httpd.serve_forever()
+</pre>
+<h2> The end.</h2>
+  <p> Well, for now anyways. I've got some more stupid things to try when I have the free time. </p>
+
+</body>
+</html>
