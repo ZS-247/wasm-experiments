@@ -1,8 +1,8 @@
-This repo contains some of my experiments with compilign c code to webassembly.
+This repo contains some of my experiments with compiling c code to webassembly.
 I have not used emcc or any special toolchains/runtimes for this. 
 I have used clang and llvm to direct compile the c code to webassembly and called it from javascript.
 
-The resulting site is available at [will be updated soon](#)
+The resulting site is available [here](https://zs-247.github.io/wasm-experiments/)
 
 ## How to run locally
 
